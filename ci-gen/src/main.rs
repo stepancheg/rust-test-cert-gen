@@ -54,10 +54,7 @@ fn steps(os: Os, channel: RustToolchain) -> Vec<Step> {
         r.push(cargo_build("cargo build only; no test", ""));
     } else {
         // Use one thread for better errors
-        r.push(cargo_test(
-            &format!("cargo test"),
-            "--all --all-targets",
-        ));
+        r.push(cargo_test(&format!("cargo test"), "--all --all-targets"));
         // `--all-targets` does not include doctests
         // https://github.com/rust-lang/cargo/issues/6669
         r.push(cargo_test("cargo test --doc", "--doc"));
@@ -92,22 +89,6 @@ fn jobs() -> Yaml {
             });
         }
     }
-
-    r.push(Job {
-        id: format!("h2spec"),
-        name: format!("h2spec"),
-        runs_on: LINUX.ghwf.to_owned(),
-        steps: vec![
-            checkout_sources(),
-            Step::run("Install h2spec", "ci/install-h2spec.sh"),
-            cargo_build("Build h2spec test", "--manifest-path h2spec-test/Cargo.toml --bin the_test"),
-            Step::run(
-                "Run h2spec test",
-                "PATH=\"$(pwd):$PATH\" cargo run --manifest-path h2spec-test/Cargo.toml --bin the_test",
-            )
-        ],
-        ..Default::default()
-    });
 
     Yaml::map(r.into_iter().map(Job::into))
 }
