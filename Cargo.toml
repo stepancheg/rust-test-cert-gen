@@ -1,2 +1,2 @@
 [workspace]
-members = ["test-cert-gen"]
+members = ["test-cert-gen", "ci-gen"]
