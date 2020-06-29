@@ -11,23 +11,23 @@ use std::process::Stdio;
 use std::ptr;
 use std::sync::Once;
 
-pub(crate) struct ClientKeys {
+pub struct ClientKeys {
     pub cert_der: Vec<u8>,
 }
 
-pub(crate) struct ServerKeys {
+pub struct ServerKeys {
     pub pkcs12: Vec<u8>,
     pub pkcs12_password: String,
 
     pub pem: Vec<u8>,
 }
 
-pub(crate) struct Keys {
+pub struct Keys {
     pub client: ClientKeys,
     pub server: ServerKeys,
 }
 
-pub(crate) fn keys() -> &'static Keys {
+pub fn keys() -> &'static Keys {
     static INIT: Once = Once::new();
     static mut KEYS: *mut Keys = ptr::null_mut();
 
