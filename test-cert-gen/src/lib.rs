@@ -2,7 +2,6 @@
 //!
 //! This is copy-paste from tokio-tls.
 
-use std::env;
 use std::fs;
 use std::io::Read;
 use std::io::Write;
@@ -36,11 +35,11 @@ pub struct Keys {
 }
 
 fn gen_keys() -> Keys {
-    let path = env::current_exe().unwrap();
-    let path = path.parent().unwrap();
-    let keyfile = path.join("test.key");
-    let certfile = path.join("test.crt");
-    let config = path.join("openssl.config");
+    let temp_dir = tempdir::TempDir::new("rust-test-cert-gen").unwrap();
+
+    let keyfile = temp_dir.path().join("test.key");
+    let certfile = temp_dir.path().join("test.crt");
+    let config = temp_dir.path().join("openssl.config");
 
     fs::write(
         &config,
