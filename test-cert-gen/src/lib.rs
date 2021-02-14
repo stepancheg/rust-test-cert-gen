@@ -35,22 +35,17 @@ pub struct Keys {
     pub server: ServerKeys,
 }
 
-/// Generate keys
-pub fn keys() -> &'static Keys {
-    static INIT: Once = Once::new();
-    static mut KEYS: *mut Keys = ptr::null_mut();
+fn gen_keys() -> Keys {
+    let path = env::current_exe().unwrap();
+    let path = path.parent().unwrap();
+    let keyfile = path.join("test.key");
+    let certfile = path.join("test.crt");
+    let config = path.join("openssl.config");
 
-    INIT.call_once(|| {
-        let path = env::current_exe().unwrap();
-        let path = path.parent().unwrap();
-        let keyfile = path.join("test.key");
-        let certfile = path.join("test.crt");
-        let config = path.join("openssl.config");
-
-        File::create(&config)
-            .unwrap()
-            .write_all(
-                b"\
+    File::create(&config)
+        .unwrap()
+        .write_all(
+            b"\
                 [req]\n\
                 distinguished_name=dn\n\
                 [dn]\n\
@@ -62,71 +57,77 @@ pub fn keys() -> &'static Keys {
                 [alt_names]\n\
                 DNS.1 = localhost\n\
             ",
-            )
-            .unwrap();
+        )
+        .unwrap();
 
-        let subj = "/C=US/ST=Denial/L=Sprintfield/O=Dis/CN=localhost";
-        let output = Command::new("openssl")
-            .arg("req")
-            .arg("-nodes")
-            .arg("-x509")
-            .arg("-newkey")
-            .arg("rsa:2048")
-            .arg("-config")
-            .arg(&config)
-            .arg("-extensions")
-            .arg("ext")
-            .arg("-subj")
-            .arg(subj)
-            .arg("-keyout")
-            .arg(&keyfile)
-            .arg("-out")
-            .arg(&certfile)
-            .arg("-days")
-            .arg("1")
-            .output()
-            .unwrap();
-        assert!(output.status.success());
+    let subj = "/C=US/ST=Denial/L=Sprintfield/O=Dis/CN=localhost";
+    let output = Command::new("openssl")
+        .arg("req")
+        .arg("-nodes")
+        .arg("-x509")
+        .arg("-newkey")
+        .arg("rsa:2048")
+        .arg("-config")
+        .arg(&config)
+        .arg("-extensions")
+        .arg("ext")
+        .arg("-subj")
+        .arg(subj)
+        .arg("-keyout")
+        .arg(&keyfile)
+        .arg("-out")
+        .arg(&certfile)
+        .arg("-days")
+        .arg("1")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
 
-        let crtout = Command::new("openssl")
-            .arg("x509")
-            .arg("-outform")
-            .arg("der")
-            .arg("-in")
-            .arg(&certfile)
-            .output()
-            .unwrap();
-        assert!(crtout.status.success());
+    let crtout = Command::new("openssl")
+        .arg("x509")
+        .arg("-outform")
+        .arg("der")
+        .arg("-in")
+        .arg(&certfile)
+        .output()
+        .unwrap();
+    assert!(crtout.status.success());
 
-        let pkcs12out = Command::new("openssl")
-            .arg("pkcs12")
-            .arg("-export")
-            .arg("-nodes")
-            .arg("-inkey")
-            .arg(&keyfile)
-            .arg("-in")
-            .arg(&certfile)
-            .arg("-password")
-            .arg("pass:foobar")
-            .output()
-            .unwrap();
-        assert!(pkcs12out.status.success());
+    let pkcs12out = Command::new("openssl")
+        .arg("pkcs12")
+        .arg("-export")
+        .arg("-nodes")
+        .arg("-inkey")
+        .arg(&keyfile)
+        .arg("-in")
+        .arg(&certfile)
+        .arg("-password")
+        .arg("pass:foobar")
+        .output()
+        .unwrap();
+    assert!(pkcs12out.status.success());
 
-        let pem = pkcs12_to_pem(&pkcs12out.stdout, "foobar");
+    let pem = pkcs12_to_pem(&pkcs12out.stdout, "foobar");
 
-        let keys = Box::new(Keys {
-            client: ClientKeys {
-                cert_der: crtout.stdout,
-            },
-            server: ServerKeys {
-                pem,
-                pkcs12: pkcs12out.stdout,
-                pkcs12_password: "foobar".to_owned(),
-            },
-        });
-        unsafe {
-            KEYS = Box::into_raw(keys);
-        }
+    Keys {
+        client: ClientKeys {
+            cert_der: crtout.stdout,
+        },
+        server: ServerKeys {
+            pem,
+            pkcs12: pkcs12out.stdout,
+            pkcs12_password: "foobar".to_owned(),
+        },
+    }
+}
+
+/// Generate keys
+pub fn keys() -> &'static Keys {
+    static INIT: Once = Once::new();
+    static mut KEYS: *mut Keys = ptr::null_mut();
+
+    INIT.call_once(|| unsafe {
+        KEYS = Box::into_raw(Box::new(gen_keys()));
     });
     unsafe { &*KEYS }
 }
