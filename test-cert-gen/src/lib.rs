@@ -3,7 +3,7 @@
 //! This is copy-paste from tokio-tls.
 
 use std::env;
-use std::fs::File;
+use std::fs;
 use std::io::Read;
 use std::io::Write;
 use std::process::Command;
@@ -42,10 +42,9 @@ fn gen_keys() -> Keys {
     let certfile = path.join("test.crt");
     let config = path.join("openssl.config");
 
-    File::create(&config)
-        .unwrap()
-        .write_all(
-            b"\
+    fs::write(
+        &config,
+        b"\
                 [req]\n\
                 distinguished_name=dn\n\
                 [dn]\n\
@@ -57,8 +56,8 @@ fn gen_keys() -> Keys {
                 [alt_names]\n\
                 DNS.1 = localhost\n\
             ",
-        )
-        .unwrap();
+    )
+    .unwrap();
 
     let subj = "/C=US/ST=Denial/L=Sprintfield/O=Dis/CN=localhost";
     let output = Command::new("openssl")
