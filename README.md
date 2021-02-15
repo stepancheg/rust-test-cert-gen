@@ -1,3 +1,3 @@
-# rust-test-cert-gen
+# test-cert-gen
 
-Utility to generate TLS certificates to be used in tests.
+This crate is now part of [rust-tls-api](https://github.com/stepancheg/rust-tls-api).
